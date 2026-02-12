@@ -1,6 +1,6 @@
 Project Description
 
-The focus here is to show another data engineering activity which is 
+The focus here is to show another data engineering activity, which is 
 the migration of an already normalized dataset from a source to a 
 target database, while keeping the data model consistent. Data 
 engineering is not always about the migration of a denormalized dataset 
