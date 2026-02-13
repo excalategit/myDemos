@@ -134,7 +134,7 @@ def load_dim_date():
         date['month'] = date['Timestamp'].dt.month
         date['year'] = date['Timestamp'].dt.year
         date['quarter'] = date['Timestamp'].dt.quarter
-        date['half_year'] = ((date['month'])-1) // 6 + 1
+        date['half_year'] = ((date['month']-1) // 6) + 1
         date = date.rename(columns={'Timestamp': 'transaction_date'})
         date = date.drop_duplicates(subset=['transaction_date'], keep='first')
 
