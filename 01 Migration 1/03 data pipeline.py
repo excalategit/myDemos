@@ -60,18 +60,6 @@ try:
     query_job = client.query(dim_customer)
     query_job.result()
 
-    # dim_date = '''
-    # CREATE TABLE IF NOT EXISTS bq_retail.dim_date (
-    # date_key STRING DEFAULT GENERATE_UUID(),
-    # date INT64,
-    # month INT64,
-    # year INT64,
-    # quarter STRING,
-    # half_year STRING
-    # )'''
-    # query_job = client.query(dim_date)
-    # query_job.result()
-
     fact_transaction = '''
     CREATE TABLE IF NOT EXISTS bq_retail.fact_transaction (
     transaction_key STRING DEFAULT GENERATE_UUID(),
@@ -124,23 +112,6 @@ def load_dim_customer():
         print(f'Loading failed for dim_customer table: {error}')
 
 
-# def load_dim_date():
-#     try:
-#         dt = read_gbq('bq_retail.raw_stg_fact_transaction', 'my-dw-demos-01')
-#         date = dt[['Timestamp']].copy()
-#         date['month'] = pd.to_datetime(date['Timestamp']).dt.month
-#         date['year'] = pd.to_datetime(date['Timestamp']).dt.year
-#         # date['quarter'] =
-#         # date['half_year'] =
-#         date = date.rename(columns={'Timestamp': 'transaction_date'})
-#         date = date.drop_duplicates(subset=['transaction_id'], keep='first')
-#
-#         to_gbq(date, 'bq_retail.dim_date', project_id='my-dw-demos-01', if_exists='fail')
-#
-#     except Exception as error:
-#         print(f'Loading failed for dim_date table: {error}')
-
-
 def load_fact_transaction():
     try:
         df = read_gbq('bq_retail.raw_stg_fact_transaction', 'my-dw-demos-01')
@@ -177,7 +148,5 @@ load_raw_staging()
 load_dim_product()
 
 load_dim_customer()
-
-# load_dim_date()
 
 load_fact_transaction()
