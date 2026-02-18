@@ -43,6 +43,24 @@ try:
     query_job = client.query(dim_product)
     query_job.result()
 
+    dim_country = '''
+    CREATE TABLE IF NOT EXISTS bq_retail.dim_country (
+    country_key STRING DEFAULT GENERATE_UUID(),
+    country STRING
+    )'''
+    query_job = client.query(dim_country)
+    query_job.result()
+
+    dim_city = '''
+    CREATE TABLE IF NOT EXISTS bq_retail.dim_city (
+    city_key STRING DEFAULT GENERATE_UUID(),
+    city STRING,
+    country STRING,
+    country_key STRING
+    )'''
+    query_job = client.query(dim_city)
+    query_job.result()
+
     dim_customer = '''
     CREATE TABLE IF NOT EXISTS bq_retail.dim_customer (
     customer_key STRING DEFAULT GENERATE_UUID(),
@@ -52,10 +70,9 @@ try:
     email STRING,
     phone_number STRING,
     address STRING,
-    city STRING,
-    country STRING,
     age INT64,
-    gender STRING
+    gender STRING,
+    city_key STRING
     )'''
     query_job = client.query(dim_customer)
     query_job.result()
@@ -107,19 +124,84 @@ def load_dim_product():
         print(f'Loading failed for dim_product table: {error}')
 
 
-def load_dim_customer():
+def load_dim_country():
     try:
         dc = read_gbq('bq_retail.raw_stg_dim_customer', 'my-dw-demos-01')
-        customer = dc[['CustomerID', 'FirstName', 'LastName', 'Email', 'Phone', 'Address', 'Age', 'Gender']].copy()
+        country = dc[['Country']].copy()
+        country = country.rename(columns={'Country': 'country'})
+        country = country.drop_duplicates()
+
+        to_gbq(country, 'bq_retail.dim_country', project_id='my-dw-demos-01', if_exists='append')
+
+        print('Data loaded successfully to dim_country table.')
+
+    except Exception as error:
+        print(f'Loading failed for dim_country table: {error}')
+
+
+def load_dim_city():
+    try:
+        dcc = read_gbq('bq_retail.raw_stg_dim_customer', 'my-dw-demos-01')
+        city = dcc[['City', 'Country']].copy()
+        city = city.rename(columns={'City': 'city'})
+        city = city.drop_duplicates(subset=['city', 'Country'], keep='first')
+
+        to_gbq(city, 'bq_retail.dim_city', project_id='my-dw-demos-01', if_exists='append')
+
+        print('Data loaded successfully to dim_city table.')
+
+        try:
+            update_dim_city = '''
+            UPDATE bq_retail.dim_city cc SET country_key = j.country_key FROM (
+                SELECT DISTINCT r.City, r.Country, c.country_key
+                FROM bq_retail.raw_stg_dim_customer r
+                JOIN bq_retail.dim_country c ON r.Country = c.country 
+            ) j
+            WHERE cc.city = j.City and cc.country = j.Country
+            '''
+            query_job = client.query(update_dim_city)
+            query_job.result()
+
+            print('dim_city updated successfully with country_key.')
+
+        except Exception as error:
+            print(f'Loading failed for dim_city table: {error}')
+
+    except Exception as error:
+        print(f'Update failed for dim_city table: {error}')
+
+
+def load_dim_customer():
+    try:
+        dcs = read_gbq('bq_retail.raw_stg_dim_customer', 'my-dw-demos-01')
+        customer = dcs[['CustomerID', 'FirstName', 'LastName', 'Email', 'Phone', 'Address', 'Age', 'Gender']].copy()
         customer = customer.rename(
             columns={'CustomerID': 'customer_id', 'FirstName': 'first_name', 'LastName': 'last_name',
-                     'Email': 'email', 'Phone': 'phone_number', 'Address': 'address', 'City': 'city',
-                     'Country': 'country', 'Age': 'age', 'Gender': 'gender'})
+                     'Email': 'email', 'Phone': 'phone_number', 'Address': 'address', 'Age': 'age', 'Gender': 'gender'})
         customer = customer.drop_duplicates(subset=['customer_id', 'first_name', 'last_name'], keep='first')
 
-        to_gbq(customer, 'bq_retail.dim_customer', project_id='my-dw-demos-01', if_exists='fail')
+        to_gbq(customer, 'bq_retail.dim_customer', project_id='my-dw-demos-01', if_exists='append')
 
         print('Customer data loaded successfully.')
+
+        try:
+            update_dim_customer = '''
+            UPDATE bq_retail.dim_customer cc SET city_key = j.city_key FROM (
+                SELECT * EXCEPT(row_num) FROM (
+                    SELECT *, ROW_NUMBER() OVER(PARTITION BY CustomerID) AS row_num
+                    FROM bq_retail.raw_stg_dim_customer r
+                    JOIN bq_retail.dim_city c ON r.City = c.city
+                ) WHERE row_num = 1
+            ) AS j
+            WHERE cc.customer_id = j.CustomerID
+            '''
+            query_job = client.query(update_dim_customer)
+            query_job.result()
+
+            print('dim_customer updated successfully with city_key.')
+
+        except Exception as error:
+            print(f'Update failed for dim_customer table: {error}')
 
     except Exception as error:
         print(f'Loading failed for dim_customer table: {error}')
@@ -138,7 +220,7 @@ def load_dim_date():
         date = date.rename(columns={'Timestamp': 'transaction_date'})
         date = date.drop_duplicates(subset=['transaction_date'], keep='first')
 
-        to_gbq(date, 'bq_retail.dim_date', project_id='my-dw-demos-01', if_exists='fail')
+        to_gbq(date, 'bq_retail.dim_date', project_id='my-dw-demos-01', if_exists='append')
 
         print('Date data loaded successfully.')
 
@@ -172,7 +254,7 @@ def load_fact_transaction():
                                                 'price': 'transaction_price'})
         final_fact = final_fact.drop_duplicates(subset=['transaction_id'], keep='first')
 
-        to_gbq(final_fact, 'bq_retail.fact_transaction', project_id='my-dw-demos-01', if_exists='fail')
+        to_gbq(final_fact, 'bq_retail.fact_transaction', project_id='my-dw-demos-01', if_exists='append')
 
         print('Fact data loaded successfully.')
 
@@ -183,6 +265,10 @@ def load_fact_transaction():
 load_raw_staging()
 
 load_dim_product()
+
+load_dim_country()
+
+load_dim_city()
 
 load_dim_customer()
 
