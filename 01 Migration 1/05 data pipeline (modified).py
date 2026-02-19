@@ -150,6 +150,8 @@ def load_dim_city():
 
         print('Data loaded successfully to dim_city table.')
 
+        # A window function is not used here as usual because the table is identified by 2 attributes
+        # whereas a WF will partition by only one attribute.
         try:
             update_dim_city = '''
             UPDATE bq_retail.dim_city cc SET country_key = j.country_key FROM (
