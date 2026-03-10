@@ -31,6 +31,7 @@ def load_raw_staging():
         print(f'Error with loading customer data {error}')
 
 
+# Creating target database tables.
 try:
     dim_product = '''
     CREATE TABLE IF NOT EXISTS bq_retail.dim_product (
@@ -78,6 +79,7 @@ except Exception as error:
     print(error)
 
 
+# Loading target database tables.
 def load_dim_product():
     try:
         dp = read_gbq('bq_retail.raw_stg_dim_product', 'my-dw-demos-01')

@@ -182,8 +182,8 @@ def el_transform():
             'geolocation_long': 'float'
         }
 
-        # Assigning the pre-determined data types. Any values not
-        # matching the assigned data type will be flagged as NaN/NaT.
+        # Assigning the pre-determined data types and flagging any values not
+        # matching the assigned data type (flagged as NaN/NaT).
         for col, dtype in schema.items():
             if dtype == 'Int64':
                 source_table[col] = pd.to_numeric(source_table[col], errors="coerce").astype('Int64')
@@ -192,10 +192,8 @@ def el_transform():
             elif dtype == 'datetime64':
                 source_table[col] = pd.to_datetime(source_table[col], errors="coerce")
 
-        # Replacing NaN/NaT with None.
-        source_table = source_table.where(pd.notna(source_table), None)
-
-        # Applying default fills by data type groups
+        # If needed, applying default fills for the NaN/NaT.
+        # First, group attributes by their data types.
         str_cols = source_table.select_dtypes(include='object').columns
         num_cols = source_table.select_dtypes(include='number').columns
         bool_cols = source_table.select_dtypes(include='bool').columns
@@ -203,6 +201,9 @@ def el_transform():
         source_table[str_cols] = source_table[str_cols].fillna('NA')
         source_table[num_cols] = source_table[num_cols].fillna(0)
         source_table[bool_cols] = source_table[bool_cols].fillna(False)
+
+        # OR replace NaN/NaT with None.
+        source_table = source_table.where(pd.notna(source_table), None)
 
         # Capitalizing the values in certain columns
         source_table['firstname'] = source_table['firstname'].str.title()
