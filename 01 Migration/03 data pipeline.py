@@ -61,6 +61,19 @@ try:
     query_job = client.query(dim_customer)
     query_job.result()
 
+    dim_date = '''
+    CREATE TABLE IF NOT EXISTS bq_retail.dim_date (
+    date_key STRING DEFAULT GENERATE_UUID(),
+    transaction_date DATETIME,
+    is_weekend BOOLEAN,
+    month INT64,
+    year INT64,
+    quarter INT64,
+    half_year INT64
+    )'''
+    query_job = client.query(dim_date)
+    query_job.result()
+
     fact_transaction = '''
     CREATE TABLE IF NOT EXISTS bq_retail.fact_transaction (
     transaction_key STRING DEFAULT GENERATE_UUID(),
@@ -70,7 +83,8 @@ try:
     transaction_price FLOAT64,
     sales FLOAT64,
     product_key STRING,
-    customer_key STRING
+    customer_key STRING,
+    date_key STRING
     )'''
     query_job = client.query(fact_transaction)
     query_job.result()
@@ -114,6 +128,28 @@ def load_dim_customer():
         print(f'Loading failed for dim_customer table: {error}')
 
 
+def load_dim_date():
+    try:
+        dt = read_gbq('bq_retail.raw_stg_fact_transaction', 'my-dw-demos-01')
+        date = dt[['Timestamp']].copy()
+        date['Timestamp'] = pd.to_datetime(date['Timestamp'])
+        # Creating additional attributes for the target date table
+        date['is_weekend'] = date['Timestamp'].dt.weekday >= 5
+        date['month'] = date['Timestamp'].dt.month
+        date['year'] = date['Timestamp'].dt.year
+        date['quarter'] = date['Timestamp'].dt.quarter
+        date['half_year'] = ((date['month'] - 1) // 6) + 1
+        date = date.rename(columns={'Timestamp': 'transaction_date'})
+        date = date.drop_duplicates(subset=['transaction_date'], keep='first')
+
+        to_gbq(date, 'bq_retail.dim_date', project_id='my-dw-demos-01', if_exists='append')
+
+        print('Date data loaded successfully.')
+
+    except Exception as error:
+        print(f'Loading failed for dim_date table: {error}')
+
+
 def load_fact_transaction():
     try:
         df = read_gbq('bq_retail.raw_stg_fact_transaction', 'my-dw-demos-01')
@@ -150,5 +186,7 @@ load_raw_staging()
 load_dim_product()
 
 load_dim_customer()
+
+load_dim_date()
 
 load_fact_transaction()
