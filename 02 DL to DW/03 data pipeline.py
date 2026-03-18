@@ -16,7 +16,7 @@ def extract_product():
             source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON, autodetect=True
         )
 
-        # The API data contains nested JSON objects however, BigQuery can handle nested objects
+        # The API data contains nested JSON objects however, BigQuery can accept nested objects
         # and therefore this is not necessary at this point.
         load_job = client.load_table_from_uri(uri, destination_table, job_config=job_config)
         load_job.result()
@@ -207,7 +207,8 @@ def load_dim_product():
 
     try:
         # Here, it becomes necessary to flatten the nested objects as pandas (read_gbq)
-        # cannot read them unless flattened. Therefore...
+        # cannot read them unless flattened and named. Since this object is a STRUCT
+        # there is no UNNEST required to flatten it.
         flatten_query = """
         SELECT id as product_id, title as product_name, description, category, image, rating.rate AS rating
         FROM bq_api.raw_stg_prod_data
@@ -419,6 +420,8 @@ def load_fact_sale_product():
     table_name = 'fact_sale_product'
 
     try:
+        # The products column is an ARRAY, to flatten it requires UNNEST before it can
+        # be used in any query.
         fact_sale_product_dataset = '''
         SELECT f.sale_key, p.product_key, pp.price, flat.quantity, pp.price * flat.quantity as total_sale, 
         pp.rating.count as stock
