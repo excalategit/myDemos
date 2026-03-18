@@ -96,6 +96,9 @@ config = {
         'city_data_types': {
             'city': 'string'
         },
+        'date_data_types': {
+            'date': 'datetime64'
+        },
         'fact_sale_data_types': {
             'sales_id': 'Int64'
         },
@@ -224,7 +227,7 @@ def load_dim_product():
             elif dtype == 'float':
                 product[col] = pd.to_numeric(product[col], errors="coerce").astype('float64')
             elif dtype == 'datetime64':
-                product[col] = pd.to_datetime(product[col], errors="coerce")
+                product[col] = pd.to_datetime(product[col], errors="coerce").dt.date
 
         # Replacing NaN/NaT with None.
         product = product.where(pd.notna(product), None)
@@ -276,7 +279,7 @@ def load_dim_customer():
             elif dtype == 'float':
                 customer[col] = pd.to_numeric(customer[col], errors="coerce").astype('float64')
             elif dtype == 'datetime64':
-                customer[col] = pd.to_datetime(customer[col], errors="coerce")
+                customer[col] = pd.to_datetime(customer[col], errors="coerce").dt.date
 
         # Replacing NaN/NaT with None.
         customer = customer.where(pd.notna(customer), None)
@@ -303,15 +306,23 @@ def load_dim_date():
         dt = read_gbq('bq_api.raw_stg_sales_data', 'my-dw-demos-01')
         date = dt[['date']].copy()
 
-        date = date.rename(columns={'date': 'sale_date'})
+        data_types = config['tables']['date_data_types']
 
-        date['sale_date'] = pd.to_datetime(date['sale_date'], errors="coerce").dt.date
-        date['month'] = pd.to_datetime(date['sale_date'], errors="coerce").dt.month
-        date['year'] = pd.to_datetime(date['sale_date'], errors="coerce").dt.year
+        for col, dtype in data_types.items():
+            if dtype == 'Int64':
+                date[col] = pd.to_numeric(date[col], errors="coerce").astype('Int64')
+            elif dtype == 'float':
+                date[col] = pd.to_numeric(date[col], errors="coerce").astype('float64')
+            elif dtype == 'datetime64':
+                date[col] = pd.to_datetime(date[col], errors="coerce").dt.date
 
         # Replacing NaN/NaT with None.
         date = date.where(pd.notna(date), None)
 
+        date['month'] = pd.to_datetime(date['sale_date'], errors="coerce").dt.month
+        date['year'] = pd.to_datetime(date['sale_date'], errors="coerce").dt.year
+
+        date = date.rename(columns={'date': 'sale_date'})
         date = date.drop_duplicates(subset=['sale_date'], keep='first')
 
         t1 = time()
@@ -375,7 +386,16 @@ def load_fact_sale():
         ds = client.query(fact_sale_dataset).to_dataframe()
 
         fact_sale = ds[['sales_id', 'customer_key', 'date_key']].copy()
-        fact_sale['sale_id'] = pd.to_numeric(fact_sale['sale_id'], errors="coerce").astype('Int64')
+
+        data_types = config['tables']['fact_sale_data_types']
+
+        for col, dtype in data_types.items():
+            if dtype == 'Int64':
+                fact_sale[col] = pd.to_numeric(fact_sale[col], errors="coerce").astype('Int64')
+            elif dtype == 'float':
+                fact_sale[col] = pd.to_numeric(fact_sale[col], errors="coerce").astype('float64')
+            elif dtype == 'datetime64':
+                fact_sale[col] = pd.to_datetime(fact_sale[col], errors="coerce").dt.date
 
         # Replacing NaN/NaT with None.
         fact_sale = fact_sale.where(pd.notna(fact_sale), None)
@@ -411,6 +431,20 @@ def load_fact_sale_product():
         df = client.query(fact_sale_product_dataset).to_dataframe()
 
         fact_sale_product = df[['sale_key', 'product_key', 'price', 'quantity', 'total_sale', 'stock']].copy()
+
+        data_types = config['tables']['fact_prod_sale_data_types']
+
+        for col, dtype in data_types.items():
+            if dtype == 'Int64':
+                fact_sale_product[col] = pd.to_numeric(fact_sale_product[col], errors="coerce").astype('Int64')
+            elif dtype == 'float':
+                fact_sale_product[col] = pd.to_numeric(fact_sale_product[col], errors="coerce").astype('float64')
+            elif dtype == 'datetime64':
+                fact_sale_product[col] = pd.to_datetime(fact_sale_product[col], errors="coerce").dt.date
+
+        # Replacing NaN/NaT with None.
+        fact_sale_product = fact_sale_product.where(pd.notna(fact_sale_product), None)
+
         fact_sale_product = fact_sale_product.drop_duplicates(subset=['sale_key', 'product_key'], keep='first')
 
         t1 = time()
