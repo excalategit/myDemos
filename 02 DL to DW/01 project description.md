@@ -20,5 +20,6 @@ ensuring that during an automated execution, errors are not absorbed but 'called
 Implications/insights:
 
 - Introduction to STRUCT and ARRAYS in nested JSON, and their implications on the code.
+- The idea of using a central config for maintaining data types was introduced.
 - Pandas is still used for data transformation due to the small size of the data, instead of dbt and the likes.
 
