@@ -229,8 +229,11 @@ def load_dim_product():
                 product[col] = pd.to_numeric(product[col], errors="coerce").astype('float64')
             elif dtype == 'datetime64':
                 product[col] = pd.to_datetime(product[col], errors="coerce").dt.date
+            elif dtype == 'string':
+                product[col] = product[col].astype("string")
 
-        # Replacing NaN/NaT with None.
+
+        # Replacing any NaN/NaT with None.
         product = product.where(pd.notna(product), None)
 
         product = product.drop_duplicates(subset=['product_id', 'product_name'], keep='first')
@@ -281,6 +284,8 @@ def load_dim_customer():
                 customer[col] = pd.to_numeric(customer[col], errors="coerce").astype('float64')
             elif dtype == 'datetime64':
                 customer[col] = pd.to_datetime(customer[col], errors="coerce").dt.date
+            elif dtype == 'string':
+                customer[col] = customer[col].astype("string")
 
         # Replacing NaN/NaT with None.
         customer = customer.where(pd.notna(customer), None)
@@ -316,6 +321,8 @@ def load_dim_date():
                 date[col] = pd.to_numeric(date[col], errors="coerce").astype('float64')
             elif dtype == 'datetime64':
                 date[col] = pd.to_datetime(date[col], errors="coerce").dt.date
+            elif dtype == 'string':
+                date[col] = date[col].astype("string")
 
         # Replacing NaN/NaT with None.
         date = date.where(pd.notna(date), None)
@@ -339,7 +346,7 @@ def load_dim_date():
         raise
 
 
-def upload_surrogate_keys():
+def transfer_surrogate_keys():
     try:
         load_dim_city = '''
         INSERT INTO bq_api.dim_city (city)
@@ -397,6 +404,8 @@ def load_fact_sale():
                 fact_sale[col] = pd.to_numeric(fact_sale[col], errors="coerce").astype('float64')
             elif dtype == 'datetime64':
                 fact_sale[col] = pd.to_datetime(fact_sale[col], errors="coerce").dt.date
+            elif dtype == 'string':
+                fact_sale[col] = fact_sale[col].astype("string")
 
         # Replacing NaN/NaT with None.
         fact_sale = fact_sale.where(pd.notna(fact_sale), None)
@@ -444,6 +453,8 @@ def load_fact_sale_product():
                 fact_sale_product[col] = pd.to_numeric(fact_sale_product[col], errors="coerce").astype('float64')
             elif dtype == 'datetime64':
                 fact_sale_product[col] = pd.to_datetime(fact_sale_product[col], errors="coerce").dt.date
+            elif dtype == 'string':
+                fact_sale_product[col] = fact_sale_product[col].astype("string")
 
         # Replacing NaN/NaT with None.
         fact_sale_product = fact_sale_product.where(pd.notna(fact_sale_product), None)
@@ -463,17 +474,22 @@ def load_fact_sale_product():
         raise
 
 
-
 extract_product()
+
 extract_sales()
+
 extract_user()
 
 create_tables()
 
 load_dim_product()
+
 load_dim_customer()
+
 load_dim_date()
-upload_surrogate_keys()
+
+transfer_surrogate_keys()
 
 load_fact_sale()
+
 load_fact_sale_product()
