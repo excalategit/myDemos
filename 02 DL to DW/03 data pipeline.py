@@ -76,7 +76,7 @@ config = {
             'description': 'string',
             'category': 'string',
             'image': 'string',
-            'rating': 'float'
+            'rating': 'Float64'
         },
         'customer_data_types': {
             'customer_id': 'Int64',
@@ -90,8 +90,8 @@ config = {
             'street': 'string',
             'number': 'Int64',
             'zipcode': 'string',
-            'latitude': 'float',
-            'longitude': 'float'
+            'latitude': 'Float64',
+            'longitude': 'Float64'
         },
         'city_data_types': {
             'city': 'string'
@@ -103,7 +103,7 @@ config = {
             'sales_id': 'Int64'
         },
         'fact_prod_sale_data_types': {
-            'price': 'float',
+            'price': 'Float64',
             'quantity': 'Int64',
             'count': 'Int64'
         }
@@ -206,9 +206,8 @@ def load_dim_product():
     table_name = 'dim_product'
 
     try:
-        # Here, it becomes necessary to flatten the nested objects as pandas (read_gbq)
-        # cannot read them unless flattened and named. Since this object is a STRUCT
-        # there is no UNNEST required to flatten it.
+        # Here, it becomes necessary to flatten the nested objects as pandas (read_gbq) cannot read them unless
+        # flattened and named. Since this object is a STRUCT there is no UNNEST required to flatten it.
         flatten_query = """
         SELECT id as product_id, title as product_name, description, category, image, rating.rate AS rating
         FROM bq_api.raw_stg_prod_data
@@ -225,10 +224,11 @@ def load_dim_product():
         for col, dtype in data_types.items():
             if dtype == 'Int64':
                 product[col] = pd.to_numeric(product[col], errors="coerce").astype('Int64')
-            elif dtype == 'float':
-                product[col] = pd.to_numeric(product[col], errors="coerce").astype('float64')
+            elif dtype == 'Float64':
+                product[col] = pd.to_numeric(product[col], errors="coerce").astype('Float64')
+            # This column is of type datetime and has to be modified in order to be able to load to type date.
             elif dtype == 'datetime64':
-                product[col] = pd.to_datetime(product[col], errors="coerce").dt.date
+                product[col] = pd.to_datetime(product[col], errors="coerce").dt.normalize()
             elif dtype == 'string':
                 product[col] = product[col].astype("string")
 
@@ -280,10 +280,10 @@ def load_dim_customer():
         for col, dtype in data_types.items():
             if dtype == 'Int64':
                 customer[col] = pd.to_numeric(customer[col], errors="coerce").astype('Int64')
-            elif dtype == 'float':
-                customer[col] = pd.to_numeric(customer[col], errors="coerce").astype('float64')
+            elif dtype == 'Float64':
+                customer[col] = pd.to_numeric(customer[col], errors="coerce").astype('Float64')
             elif dtype == 'datetime64':
-                customer[col] = pd.to_datetime(customer[col], errors="coerce").dt.date
+                customer[col] = pd.to_datetime(customer[col], errors="coerce").dt.normalize()
             elif dtype == 'string':
                 customer[col] = customer[col].astype("string")
 
@@ -317,10 +317,10 @@ def load_dim_date():
         for col, dtype in data_types.items():
             if dtype == 'Int64':
                 date[col] = pd.to_numeric(date[col], errors="coerce").astype('Int64')
-            elif dtype == 'float':
-                date[col] = pd.to_numeric(date[col], errors="coerce").astype('float64')
+            elif dtype == 'Float64':
+                date[col] = pd.to_numeric(date[col], errors="coerce").astype('Float64')
             elif dtype == 'datetime64':
-                date[col] = pd.to_datetime(date[col], errors="coerce").dt.date
+                date[col] = pd.to_datetime(date[col], errors="coerce").dt.normalize()
             elif dtype == 'string':
                 date[col] = date[col].astype("string")
 
@@ -400,10 +400,10 @@ def load_fact_sale():
         for col, dtype in data_types.items():
             if dtype == 'Int64':
                 fact_sale[col] = pd.to_numeric(fact_sale[col], errors="coerce").astype('Int64')
-            elif dtype == 'float':
-                fact_sale[col] = pd.to_numeric(fact_sale[col], errors="coerce").astype('float64')
+            elif dtype == 'Float64':
+                fact_sale[col] = pd.to_numeric(fact_sale[col], errors="coerce").astype('Float64')
             elif dtype == 'datetime64':
-                fact_sale[col] = pd.to_datetime(fact_sale[col], errors="coerce").dt.date
+                fact_sale[col] = pd.to_datetime(fact_sale[col], errors="coerce").dt.normalize()
             elif dtype == 'string':
                 fact_sale[col] = fact_sale[col].astype("string")
 
@@ -429,8 +429,7 @@ def load_fact_sale_product():
     table_name = 'fact_sale_product'
 
     try:
-        # The products column is an ARRAY, to flatten it requires UNNEST before it can
-        # be used in any query.
+        # The products column is an ARRAY, to flatten it requires UNNEST before it can be used in a query.
         fact_sale_product_dataset = '''
         SELECT f.sale_key, p.product_key, pp.price, flat.quantity, pp.price * flat.quantity as total_sale, 
         pp.rating.count as stock
@@ -449,10 +448,10 @@ def load_fact_sale_product():
         for col, dtype in data_types.items():
             if dtype == 'Int64':
                 fact_sale_product[col] = pd.to_numeric(fact_sale_product[col], errors="coerce").astype('Int64')
-            elif dtype == 'float':
-                fact_sale_product[col] = pd.to_numeric(fact_sale_product[col], errors="coerce").astype('float64')
+            elif dtype == 'Float64':
+                fact_sale_product[col] = pd.to_numeric(fact_sale_product[col], errors="coerce").astype('Float64')
             elif dtype == 'datetime64':
-                fact_sale_product[col] = pd.to_datetime(fact_sale_product[col], errors="coerce").dt.date
+                fact_sale_product[col] = pd.to_datetime(fact_sale_product[col], errors="coerce").dt.normalize()
             elif dtype == 'string':
                 fact_sale_product[col] = fact_sale_product[col].astype("string")
 
