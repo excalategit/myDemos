@@ -358,25 +358,25 @@ def transfer_surrogate_keys():
 
         print('dim_city loaded.')
 
-        # Fetching surrogate keys from dim_city and loading to dim_customer.
-        try:
-            update_dim_customer = '''
-            UPDATE bq_api.dim_customer AS dc SET city_key = c.city_key
-            FROM bq_api.raw_stg_user_data AS u
-            JOIN bq_api.dim_city AS c ON u.address.city = c.city
-            WHERE dc.customer_id = u.id
-            '''
-            query_job = client.query(update_dim_customer)
-            query_job.result()
-
-            print('dim_customer updated with city_keys.')
-
-        except Exception as error:
-            print(f'Error with dim_customer update: {error}')
-            raise
-
     except Exception as error:
         print(f'Error with dim_city loading: {error}')
+        raise
+
+    # Fetching surrogate keys from dim_city and loading to dim_customer.
+    try:
+        update_dim_customer = '''
+        UPDATE bq_api.dim_customer AS dc SET city_key = c.city_key
+        FROM bq_api.raw_stg_user_data AS u
+        JOIN bq_api.dim_city AS c ON u.address.city = c.city
+        WHERE dc.customer_id = u.id
+        '''
+        query_job = client.query(update_dim_customer)
+        query_job.result()
+
+        print('dim_customer updated with city_keys.')
+
+    except Exception as error:
+        print(f'Error with dim_customer update: {error}')
         raise
 
 
