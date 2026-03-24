@@ -11,24 +11,24 @@ def load_raw_staging():
         to_gbq(dc, 'bq_retail.raw_stg_dim_customer', project_id='my-dw-demos-01', if_exists='fail')
         print('Customer data loaded successfully.')
 
-        try:
-            dp = pd.read_csv('01 Retail/products_df.csv', index_col=0)
-            to_gbq(dp, 'bq_retail.raw_stg_dim_product', project_id='my-dw-demos-01', if_exists='fail')
-            print ('Products data loaded successfully.')
-
-            try:
-                dt = pd.read_csv('01 Retail/transactions_df.csv', index_col=0)
-                to_gbq(dt, 'bq_retail.raw_stg_fact_transaction', project_id='my-dw-demos-01', if_exists='fail')
-                print('Transactions data loaded successfully.')
-
-            except Exception as error:
-                print(f'Error with loading transactions data {error}')
-
-        except Exception as error:
-            print(f'Error with loading products data {error}')
-
     except Exception as error:
         print(f'Error with loading customer data {error}')
+
+    try:
+        dp = pd.read_csv('01 Retail/products_df.csv', index_col=0)
+        to_gbq(dp, 'bq_retail.raw_stg_dim_product', project_id='my-dw-demos-01', if_exists='fail')
+        print ('Products data loaded successfully.')
+
+    except Exception as error:
+        print(f'Error with loading products data {error}')
+
+    try:
+        dt = pd.read_csv('01 Retail/transactions_df.csv', index_col=0)
+        to_gbq(dt, 'bq_retail.raw_stg_fact_transaction', project_id='my-dw-demos-01', if_exists='fail')
+        print('Transactions data loaded successfully.')
+
+    except Exception as error:
+        print(f'Error with loading transactions data {error}')
 
 
 # Creating target database tables.

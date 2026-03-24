@@ -11,24 +11,24 @@ def load_raw_staging():
         to_gbq(dc, 'bq_retail.raw_stg_dim_customer', project_id='my-dw-demos-01', if_exists='fail')
         print('Customer data loaded successfully.')
 
-        try:
-            dp = pd.read_csv('01 Retail/products_df.csv', index_col=0)
-            to_gbq(dp, 'bq_retail.raw_stg_dim_product', project_id='my-dw-demos-01', if_exists='fail')
-            print ('Products data loaded successfully.')
-
-            try:
-                dt = pd.read_csv('01 Retail/transactions_df.csv', index_col=0)
-                to_gbq(dt, 'bq_retail.raw_stg_fact_transaction', project_id='my-dw-demos-01', if_exists='fail')
-                print('Transactions data loaded successfully.')
-
-            except Exception as error:
-                print(f'Error with loading transactions data {error}')
-
-        except Exception as error:
-            print(f'Error with loading products data {error}')
-
     except Exception as error:
         print(f'Error with loading customer data {error}')
+
+    try:
+        dp = pd.read_csv('01 Retail/products_df.csv', index_col=0)
+        to_gbq(dp, 'bq_retail.raw_stg_dim_product', project_id='my-dw-demos-01', if_exists='fail')
+        print ('Products data loaded successfully.')
+
+    except Exception as error:
+        print(f'Error with loading products data {error}')
+
+    try:
+        dt = pd.read_csv('01 Retail/transactions_df.csv', index_col=0)
+        to_gbq(dt, 'bq_retail.raw_stg_fact_transaction', project_id='my-dw-demos-01', if_exists='fail')
+        print('Transactions data loaded successfully.')
+
+    except Exception as error:
+        print(f'Error with loading transactions data {error}')
 
 
 # Creating target database tables.
@@ -152,27 +152,27 @@ def load_dim_city():
 
         print('Data loaded successfully to dim_city table.')
 
-        # A window function is not used here as usual because the table is identified by 2 attributes
-        # whereas a WF will partition by only one attribute.
-        try:
-            update_dim_city = '''
-            UPDATE bq_retail.dim_city cc SET country_key = j.country_key FROM (
-                SELECT DISTINCT r.City, r.Country, c.country_key
-                FROM bq_retail.raw_stg_dim_customer r
-                JOIN bq_retail.dim_country c ON r.Country = c.country 
-            ) j
-            WHERE cc.city = j.City and cc.country = j.Country
-            '''
-            query_job = client.query(update_dim_city)
-            query_job.result()
-
-            print('dim_city updated successfully with country_key.')
-
-        except Exception as error:
-            print(f'Loading failed for dim_city table: {error}')
-
     except Exception as error:
         print(f'Update failed for dim_city table: {error}')
+
+    # A window function is not used here as usual because the table is identified by 2 attributes
+    # whereas a WF will partition by only one attribute.
+    try:
+        update_dim_city = '''
+        UPDATE bq_retail.dim_city cc SET country_key = j.country_key FROM (
+            SELECT DISTINCT r.City, r.Country, c.country_key
+            FROM bq_retail.raw_stg_dim_customer r
+            JOIN bq_retail.dim_country c ON r.Country = c.country 
+        ) j
+        WHERE cc.city = j.City and cc.country = j.Country
+        '''
+        query_job = client.query(update_dim_city)
+        query_job.result()
+
+        print('dim_city updated successfully with country_key.')
+
+    except Exception as error:
+        print(f'Loading failed for dim_city table: {error}')
 
 
 def load_dim_customer():
@@ -188,27 +188,27 @@ def load_dim_customer():
 
         print('Customer data loaded successfully.')
 
-        try:
-            update_dim_customer = '''
-            UPDATE bq_retail.dim_customer cc SET city_key = j.city_key FROM (
-                SELECT * EXCEPT(row_num) FROM (
-                    SELECT *, ROW_NUMBER() OVER(PARTITION BY CustomerID) AS row_num
-                    FROM bq_retail.raw_stg_dim_customer r
-                    JOIN bq_retail.dim_city c ON r.City = c.city
-                ) WHERE row_num = 1
-            ) AS j
-            WHERE cc.customer_id = j.CustomerID
-            '''
-            query_job = client.query(update_dim_customer)
-            query_job.result()
-
-            print('dim_customer updated successfully with city_key.')
-
-        except Exception as error:
-            print(f'Update failed for dim_customer table: {error}')
-
     except Exception as error:
         print(f'Loading failed for dim_customer table: {error}')
+
+    try:
+        update_dim_customer = '''
+        UPDATE bq_retail.dim_customer cc SET city_key = j.city_key FROM (
+            SELECT * EXCEPT(row_num) FROM (
+                SELECT *, ROW_NUMBER() OVER(PARTITION BY CustomerID) AS row_num
+                FROM bq_retail.raw_stg_dim_customer r
+                JOIN bq_retail.dim_city c ON r.City = c.city
+            ) WHERE row_num = 1
+        ) AS j
+        WHERE cc.customer_id = j.CustomerID
+        '''
+        query_job = client.query(update_dim_customer)
+        query_job.result()
+
+        print('dim_customer updated successfully with city_key.')
+
+    except Exception as error:
+        print(f'Update failed for dim_customer table: {error}')
 
 
 def load_dim_date():
