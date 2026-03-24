@@ -14,7 +14,7 @@ def extract_product():
 
         job_config = bigquery.LoadJobConfig(
             source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON, autodetect=True
-        )
+            )
 
         # The API data contains nested JSON objects however, BigQuery can accept nested objects
         # and therefore this is not necessary at this point.
@@ -35,7 +35,7 @@ def extract_sales():
 
         job_config = bigquery.LoadJobConfig(
             source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON, autodetect=True
-        )
+            )
 
         load_job = client.load_table_from_uri(uri, destination_table, job_config=job_config)
         load_job.result()
@@ -54,7 +54,7 @@ def extract_user():
 
         job_config = bigquery.LoadJobConfig(
             source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON, autodetect=True
-        )
+            )
 
         load_job = client.load_table_from_uri(uri, destination_table, job_config=job_config)
         load_job.result()
@@ -226,11 +226,10 @@ def load_dim_product():
                 product[col] = pd.to_numeric(product[col], errors="coerce").astype('Int64')
             elif dtype == 'Float64':
                 product[col] = pd.to_numeric(product[col], errors="coerce").astype('Float64')
-            # This column is of type datetime and has to be modified in order to be able to load to type date.
             elif dtype == 'datetime64':
                 product[col] = pd.to_datetime(product[col], errors="coerce").dt.normalize()
             elif dtype == 'string':
-                product[col] = product[col].astype("string")
+                product[col] = product[col].astype('string')
 
 
         # Replacing any NaN/NaT with None.
@@ -285,7 +284,7 @@ def load_dim_customer():
             elif dtype == 'datetime64':
                 customer[col] = pd.to_datetime(customer[col], errors="coerce").dt.normalize()
             elif dtype == 'string':
-                customer[col] = customer[col].astype("string")
+                customer[col] = customer[col].astype('string')
 
         # Replacing NaN/NaT with None.
         customer = customer.where(pd.notna(customer), None)
@@ -322,7 +321,7 @@ def load_dim_date():
             elif dtype == 'datetime64':
                 date[col] = pd.to_datetime(date[col], errors="coerce").dt.normalize()
             elif dtype == 'string':
-                date[col] = date[col].astype("string")
+                date[col] = date[col].astype('string')
 
         # Replacing NaN/NaT with None.
         date = date.where(pd.notna(date), None)
@@ -405,7 +404,7 @@ def load_fact_sale():
             elif dtype == 'datetime64':
                 fact_sale[col] = pd.to_datetime(fact_sale[col], errors="coerce").dt.normalize()
             elif dtype == 'string':
-                fact_sale[col] = fact_sale[col].astype("string")
+                fact_sale[col] = fact_sale[col].astype('string')
 
         # Replacing NaN/NaT with None.
         fact_sale = fact_sale.where(pd.notna(fact_sale), None)
@@ -453,7 +452,7 @@ def load_fact_sale_product():
             elif dtype == 'datetime64':
                 fact_sale_product[col] = pd.to_datetime(fact_sale_product[col], errors="coerce").dt.normalize()
             elif dtype == 'string':
-                fact_sale_product[col] = fact_sale_product[col].astype("string")
+                fact_sale_product[col] = fact_sale_product[col].astype('string')
 
         # Replacing NaN/NaT with None.
         fact_sale_product = fact_sale_product.where(pd.notna(fact_sale_product), None)
