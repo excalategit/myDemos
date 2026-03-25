@@ -208,10 +208,10 @@ def load_dim_product():
     try:
         # Here, it becomes necessary to flatten the nested objects as pandas (read_gbq) cannot read them unless
         # flattened and named. Since this object is a STRUCT there is no UNNEST required to flatten it.
-        flatten_query = """
+        flatten_query = '''
         SELECT id as product_id, title as product_name, description, category, image, rating.rate AS rating
         FROM bq_api.raw_stg_prod_data
-        """
+        '''
 
         dp = client.query(flatten_query).to_dataframe()
 
@@ -254,12 +254,12 @@ def load_dim_customer():
     table_name = 'dim_customer'
 
     try:
-        flatten_query = """
+        flatten_query = '''
         SELECT id as customer_id, email, username, password, phone, name.firstname as first_name, 
         name.lastname as last_name, address.street as street, address.number as number, address.zipcode as zipcode, 
         address.geolocation.lat as latitude, address.geolocation.long as longitude
         FROM bq_api.raw_stg_user_data
-        """
+        '''
 
         dc = client.query(flatten_query).to_dataframe()
         customer = dc[['customer_id', 'email', 'username', 'password', 'phone', 'first_name', 'last_name',
@@ -386,8 +386,8 @@ def load_fact_sale():
         fact_sale_dataset = '''
         SELECT id as sales_id, c.customer_key, d.date_key
         FROM bq_api.raw_stg_sales_data s
-        JOIN bq_api.dim_customer c ON s.`userId` = c.customer_id
-        JOIN bq_api.dim_date d ON CAST (s.date as DATE) = d.sale_date
+        LEFT JOIN bq_api.dim_customer c ON s.`userId` = c.customer_id
+        LEFT JOIN bq_api.dim_date d ON CAST (s.date as DATE) = d.sale_date
         '''
 
         ds = client.query(fact_sale_dataset).to_dataframe()
@@ -434,7 +434,7 @@ def load_fact_sale_product():
         pp.rating.count as stock
         FROM bq_api.raw_stg_sales_data s, UNNEST (s.products) as flat
         JOIN bq_api.fact_sale f ON s.id = f.sales_id
-        JOIN bq_api.dim_product p ON flat.`productId` = p.product_id
+        LEFT JOIN bq_api.dim_product p ON flat.`productId` = p.product_id
         JOIN bq_api.raw_stg_prod_data pp on p.product_id = pp.id 
         '''
 
