@@ -80,21 +80,17 @@ config = {
         },
         'customer_data_types': {
             'customer_id': 'Int64',
-            'firstname': 'string',
-            'lastname': 'string',
+            'first_name': 'string',
+            'last_name': 'string',
             'email': 'string',
             'phone': 'string',
             'username': 'string',
             'password': 'string',
-            'city': 'string',
             'street': 'string',
             'number': 'Int64',
             'zipcode': 'string',
             'latitude': 'Float64',
             'longitude': 'Float64'
-        },
-        'city_data_types': {
-            'city': 'string'
         },
         'date_data_types': {
             'date': 'datetime64'
@@ -109,6 +105,27 @@ config = {
         }
     }
 }
+
+
+def enforcer(table_name, dataframe):
+    data_types = config['tables'][table_name]
+
+    # Assigning the pre-determined data types from the config and flagging any values not
+    # matching the assigned data type (flagged as NaN/NaT).
+    for col, dtype in data_types.items():
+        if dtype == 'Int64':
+            dataframe[col] = pd.to_numeric(dataframe[col], errors="coerce").astype('Int64')
+        elif dtype == 'Float64':
+            dataframe[col] = pd.to_numeric(dataframe[col], errors="coerce").astype('Float64')
+        elif dtype == 'datetime64':
+            dataframe[col] = pd.to_datetime(dataframe[col], errors="coerce").dt.normalize()
+        elif dtype == 'string':
+            dataframe[col] = dataframe[col].astype('string')
+
+    # Replacing any NaN/NaT with None.
+    dataframe = dataframe.where(pd.notna(dataframe), None)
+
+    return dataframe
 
 
 # Creating the dimension and fact tables
@@ -203,7 +220,7 @@ def create_tables():
 
 # Loading the target tables.
 def load_dim_product():
-    table_name = 'dim_product'
+    table_name = 'product_data_types'
 
     try:
         # Here, it becomes necessary to flatten the nested objects as pandas (read_gbq) cannot read them unless
@@ -217,23 +234,7 @@ def load_dim_product():
 
         product = dp[['product_id', 'product_name', 'description', 'category', 'image', 'rating']].copy()
 
-        # Assigning the pre-determined data types from the config and flagging any values not
-        # matching the assigned data type (flagged as NaN/NaT).
-        data_types = config['tables']['product_data_types']
-
-        for col, dtype in data_types.items():
-            if dtype == 'Int64':
-                product[col] = pd.to_numeric(product[col], errors="coerce").astype('Int64')
-            elif dtype == 'Float64':
-                product[col] = pd.to_numeric(product[col], errors="coerce").astype('Float64')
-            elif dtype == 'datetime64':
-                product[col] = pd.to_datetime(product[col], errors="coerce").dt.normalize()
-            elif dtype == 'string':
-                product[col] = product[col].astype('string')
-
-
-        # Replacing any NaN/NaT with None.
-        product = product.where(pd.notna(product), None)
+        enforcer(table_name, product)
 
         product = product.drop_duplicates(subset=['product_id', 'product_name'], keep='first')
 
@@ -243,7 +244,7 @@ def load_dim_product():
 
         load_time = t2-t1
 
-        print(f'Rows 0 to {len(product)} loaded successfully for {table_name} in {load_time}s')
+        print(f'Rows 0 to {len(product)} loaded successfully for dim_product in {load_time}s')
 
     except Exception as error:
         print(f'Error with loading {table_name}: {error}')
@@ -251,7 +252,7 @@ def load_dim_product():
 
 
 def load_dim_customer():
-    table_name = 'dim_customer'
+    table_name = 'customer_data_types'
 
     try:
         flatten_query = '''
@@ -274,20 +275,7 @@ def load_dim_customer():
         customer['password'] = '***Masked***'
         customer['phone'] = '***Masked***'
 
-        data_types = config['tables']['customer_data_types']
-
-        for col, dtype in data_types.items():
-            if dtype == 'Int64':
-                customer[col] = pd.to_numeric(customer[col], errors="coerce").astype('Int64')
-            elif dtype == 'Float64':
-                customer[col] = pd.to_numeric(customer[col], errors="coerce").astype('Float64')
-            elif dtype == 'datetime64':
-                customer[col] = pd.to_datetime(customer[col], errors="coerce").dt.normalize()
-            elif dtype == 'string':
-                customer[col] = customer[col].astype('string')
-
-        # Replacing NaN/NaT with None.
-        customer = customer.where(pd.notna(customer), None)
+        enforcer(table_name, customer)
 
         customer = customer.drop_duplicates(subset=['customer_id', 'first_name', 'last_name'], keep='first')
 
@@ -297,7 +285,7 @@ def load_dim_customer():
 
         load_time = t2 - t1
 
-        print(f'Rows 0 to {len(customer)} loaded successfully for {table_name} in {load_time}s')
+        print(f'Rows 0 to {len(customer)} loaded successfully for dim_customer in {load_time}s')
 
     except Exception as error:
         print(f'Error with loading {table_name}: {error}')
@@ -305,26 +293,13 @@ def load_dim_customer():
 
 
 def load_dim_date():
-    table_name = 'dim_date'
+    table_name = 'date_data_types'
 
     try:
         dt = read_gbq('bq_api.raw_stg_sales_data', 'my-dw-demos-01')
         date = dt[['date']].copy()
 
-        data_types = config['tables']['date_data_types']
-
-        for col, dtype in data_types.items():
-            if dtype == 'Int64':
-                date[col] = pd.to_numeric(date[col], errors="coerce").astype('Int64')
-            elif dtype == 'Float64':
-                date[col] = pd.to_numeric(date[col], errors="coerce").astype('Float64')
-            elif dtype == 'datetime64':
-                date[col] = pd.to_datetime(date[col], errors="coerce").dt.normalize()
-            elif dtype == 'string':
-                date[col] = date[col].astype('string')
-
-        # Replacing NaN/NaT with None.
-        date = date.where(pd.notna(date), None)
+        enforcer(table_name, date)
 
         date['month'] = pd.to_datetime(date['sale_date'], errors="coerce").dt.month
         date['year'] = pd.to_datetime(date['sale_date'], errors="coerce").dt.year
@@ -338,7 +313,7 @@ def load_dim_date():
 
         load_time = t2 - t1
 
-        print(f'Rows 0 to {len(date)} loaded successfully for {table_name} in {load_time}s')
+        print(f'Rows 0 to {len(date)} loaded successfully for dim_date in {load_time}s')
 
     except Exception as error:
         print(f'Error with loading {table_name}: {error}')
@@ -380,7 +355,7 @@ def transfer_surrogate_keys():
 
 
 def load_fact_sale():
-    table_name = 'fact_sale'
+    table_name = 'fact_sale_data_types'
 
     try:
         fact_sale_dataset = '''
@@ -394,20 +369,7 @@ def load_fact_sale():
 
         fact_sale = ds[['sales_id', 'customer_key', 'date_key']].copy()
 
-        data_types = config['tables']['fact_sale_data_types']
-
-        for col, dtype in data_types.items():
-            if dtype == 'Int64':
-                fact_sale[col] = pd.to_numeric(fact_sale[col], errors="coerce").astype('Int64')
-            elif dtype == 'Float64':
-                fact_sale[col] = pd.to_numeric(fact_sale[col], errors="coerce").astype('Float64')
-            elif dtype == 'datetime64':
-                fact_sale[col] = pd.to_datetime(fact_sale[col], errors="coerce").dt.normalize()
-            elif dtype == 'string':
-                fact_sale[col] = fact_sale[col].astype('string')
-
-        # Replacing NaN/NaT with None.
-        fact_sale = fact_sale.where(pd.notna(fact_sale), None)
+        enforcer(table_name, fact_sale)
 
         fact_sale = fact_sale.drop_duplicates(subset=['sales_id'], keep='first')
 
@@ -417,7 +379,7 @@ def load_fact_sale():
 
         load_time = t2 - t1
 
-        print(f'Rows 0 to {len(fact_sale)} loaded successfully for {table_name} in {load_time}s')
+        print(f'Rows 0 to {len(fact_sale)} loaded successfully for fact_sale in {load_time}s')
 
     except Exception as error:
         print(f'Error with loading {table_name}: {error}')
@@ -425,7 +387,7 @@ def load_fact_sale():
 
 
 def load_fact_sale_product():
-    table_name = 'fact_sale_product'
+    table_name = 'fact_prod_sale_data_types'
 
     try:
         # The products column is an ARRAY, to flatten it requires UNNEST before it can be used in a query.
@@ -442,20 +404,7 @@ def load_fact_sale_product():
 
         fact_sale_product = df[['sale_key', 'product_key', 'price', 'quantity', 'total_sale', 'stock']].copy()
 
-        data_types = config['tables']['fact_prod_sale_data_types']
-
-        for col, dtype in data_types.items():
-            if dtype == 'Int64':
-                fact_sale_product[col] = pd.to_numeric(fact_sale_product[col], errors="coerce").astype('Int64')
-            elif dtype == 'Float64':
-                fact_sale_product[col] = pd.to_numeric(fact_sale_product[col], errors="coerce").astype('Float64')
-            elif dtype == 'datetime64':
-                fact_sale_product[col] = pd.to_datetime(fact_sale_product[col], errors="coerce").dt.normalize()
-            elif dtype == 'string':
-                fact_sale_product[col] = fact_sale_product[col].astype('string')
-
-        # Replacing NaN/NaT with None.
-        fact_sale_product = fact_sale_product.where(pd.notna(fact_sale_product), None)
+        enforcer(table_name, fact_sale_product)
 
         fact_sale_product = fact_sale_product.drop_duplicates(subset=['sale_key', 'product_key'], keep='first')
 
@@ -465,7 +414,7 @@ def load_fact_sale_product():
 
         load_time = t2 - t1
 
-        print(f'Rows 0 to {len(fact_sale_product)} loaded successfully for {table_name} in {load_time}s')
+        print(f'Rows 0 to {len(fact_sale_product)} loaded successfully for fact_sale_product in {load_time}s')
 
     except Exception as error:
         print(f'Error with fact_product_sale loading: {error}')
