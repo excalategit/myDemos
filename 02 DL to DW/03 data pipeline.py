@@ -391,6 +391,7 @@ def load_fact_sale_product():
 
     try:
         # The products column is an ARRAY, to flatten it requires UNNEST before it can be used in a query.
+        # Also, to preserve the fact table during enrichment with dim surrogate keys an outer join is used.
         fact_sale_product_dataset = '''
         SELECT f.sale_key, p.product_key, pp.price, flat.quantity, pp.price * flat.quantity as total_sale, 
         pp.rating.count as stock
