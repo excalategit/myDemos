@@ -66,8 +66,7 @@ def extract_user():
         raise
 
 
-# Specifying the in-code configuration (as opposed to using a config file) for setting the data types of the
-# attributes on each table.
+# Specifying the schema (data types) in-code as opposed to using a config file.
 config = {
     'tables': {
         'product_data_types': {
