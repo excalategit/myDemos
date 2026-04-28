@@ -1,0 +1,45 @@
+tables:
+  product_data_types:
+    schema:
+      product_id: Int64
+      product_name: string
+      description: string
+      category: string
+      image: string
+      rating: Float64
+    null_replacements:
+      product_name: 'Unknown'
+      rating: 0.0
+  customer_data_types:
+    schema:
+      customer_id: Int64
+      first_name: string
+      last_name: string
+      email: string
+      phone: string
+      username: string
+      password: string
+      street: string
+      number: Int64
+      zipcode: string
+      latitude: Float64
+      longitude: Float64
+    null_replacements:
+      phone: 'Unlisted'
+      latitude: 0.0
+      longitude: 0.0
+  date_data_types:
+    schema:
+      date: datetime64
+    null_replacements:
+      date: 01-01-2026
+  fact_sale_data_types:
+    schema:
+      sales_id: Int64
+  fact_prod_sale_data_types:
+    schema:
+      price: Float64
+      quantity: Int64
+      count: Int64
+    null_replacements:
+      price: 0.00
