@@ -17,8 +17,8 @@ Usually, the sale (fact_transaction) and dim_product tables would have a
 many-to-many relationship, but here the relationship has already been converted
 to a one-to-many from the source system (using a junction table) ensuring that 
 each product is connected to a unique sale. So the fact_transaction table here
-is the actual junction table from the source system, except the surrogate keys
-of the original transaction table have been removed.
+is the actual junction table from the source system, except its original 
+surrogate keys are absent in the data.
 
 3 methods were investigated for loading the target fact table here:
 - transform source fact_table, join its dataframe to dim_table dataframes, 
