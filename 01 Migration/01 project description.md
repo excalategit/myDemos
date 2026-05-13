@@ -1,25 +1,24 @@
 Project Description
 
-The focus here is to show another data engineering activity, which is 
+The project focuses on showcasing another data engineering activity, which is 
 the migration of an already normalized dataset from a source to a 
 target database, while keeping the data model consistent.
 
-In the modified version of the pipeline, the model was further normalized to
-optimize it for BI purposes i.e. extracting City and Country to their own tables. 
-City table now contains additional geographical context, this was missing in 
-previous designs.
+There are 2 files for the pipeline code, in the modified version, the data model 
+was further normalized to optimize it for BI purposes i.e. extracting City and 
+Country to their own tables. The City table also now contains additional 
+geographical context, this was missing in previous designs.
 
 Since the project is showcasing the loading method for a scenario where the 
 data model is consistent between source and target systems, the emphasis was 
-taken away from showcasing a heavy transformation layer, or improving the 
-data model, as usual.
+taken away from showcasing a heavy transformation layer.
 
-Usually, the sale (dim_transaction) and product tables would have a many-to-many
-relationship, but here the relationship has already been converted to a one-to-many 
-from the source system (using a junction table). Each product is now connected to 
-a unique sale. So the transaction table here is the actual junction table from the 
-source system, where the surrogate keys of the original transaction table have been 
-removed.
+Usually, the sale (fact_transaction) and dim_product tables would have a 
+many-to-many relationship, but here the relationship has already been converted
+to a one-to-many from the source system (using a junction table) ensuring that 
+each product is connected to a unique sale. So the fact_transaction table here
+is the actual junction table from the source system, except the surrogate keys
+of the original transaction table have been removed.
 
 3 methods were investigated for loading the target fact table here:
 - transform source fact_table, join its dataframe to dim_table dataframes, 
