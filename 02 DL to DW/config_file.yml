@@ -1,3 +1,6 @@
+# The data pipeline already replaces all nulls with None, the null replacements specified here
+# are for the alternatives specified by the business in cases where None is insufficient.
+
 tables:
   product_data_types:
     schema:
