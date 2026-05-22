@@ -89,11 +89,13 @@ def enforcer(table_name, dataframe):
         # Replacing any NaN/NaT with None.
         dataframe = dataframe.where(pd.notna(dataframe), None)
 
-        # Instead of generally replacing any errors with None, certain cases may be addressed using the
-        # Business' preferences, also stored in the config file.
-        null_replacement_spec = config['tables'][table_name]['null_replacements']
-        for col, fill_value in null_replacement_spec.items():
-            dataframe[col] = dataframe[col].fillna(fill_value)
+        # Instead of generally replacing any errors with None, they may also be replaced with the
+        # Business' preferences, which is also stored in the config file. These preferences may
+        # not always be available hence the different syntax and conditional statement.
+        null_replacement_spec = config['tables'][table_name].get('null_replacements')
+        if null_replacement_spec:
+            for col, fill_value in null_replacement_spec.items():
+                dataframe[col] = dataframe[col].fillna(fill_value)
 
     return dataframe
 
