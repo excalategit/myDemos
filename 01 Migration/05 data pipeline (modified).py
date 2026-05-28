@@ -141,7 +141,10 @@ def load_dim_country():
 
 
 def load_dim_city():
-
+    # A city name is not unique on its own except in combination with its geographical context (state, country etc.)
+    # The business key here will therefore be city+country_key. The pipeline design must ensure that both fields are
+    # available at the time of loading as they will be loaded together. This designs fetches the fields from a
+    # staging-dim_country join.
     try:
         dc = read_gbq('bq_retail.raw_stg_dim_customer', 'my-dw-demos-01')
         dcc = read_gbq('bq_retail.dim_country', 'my-dw-demos-01')
