@@ -8,7 +8,7 @@ client = bigquery.Client()
 def load_raw_staging():
     try:
         dc = pd.read_csv('01 Retail/customers_df.csv', index_col=0)
-        to_gbq(dc, 'bq_retail.raw_stg_dim_customer', project_id='my-dw-demos-01', if_exists='fail')
+        to_gbq(dc, 'bq_retail.raw_stg_customer', project_id='my-dw-demos-01', if_exists='fail')
         print('Customer data loaded successfully.')
 
     except Exception as error:
@@ -16,7 +16,7 @@ def load_raw_staging():
 
     try:
         dp = pd.read_csv('01 Retail/products_df.csv', index_col=0)
-        to_gbq(dp, 'bq_retail.raw_stg_dim_product', project_id='my-dw-demos-01', if_exists='fail')
+        to_gbq(dp, 'bq_retail.raw_stg_product', project_id='my-dw-demos-01', if_exists='fail')
         print ('Products data loaded successfully.')
 
     except Exception as error:
@@ -24,7 +24,7 @@ def load_raw_staging():
 
     try:
         dt = pd.read_csv('01 Retail/transactions_df.csv', index_col=0)
-        to_gbq(dt, 'bq_retail.raw_stg_fact_transaction', project_id='my-dw-demos-01', if_exists='fail')
+        to_gbq(dt, 'bq_retail.raw_stg_transaction', project_id='my-dw-demos-01', if_exists='fail')
         print('Transactions data loaded successfully.')
 
     except Exception as error:
@@ -111,7 +111,7 @@ except Exception as error:
 # Loading target database tables.
 def load_dim_product():
     try:
-        dp = read_gbq('bq_retail.raw_stg_dim_product', 'my-dw-demos-01')
+        dp = read_gbq('bq_retail.raw_stg_product', 'my-dw-demos-01')
         product = dp[['ProductID', 'ProductName', 'Category', 'Price']].copy()
         product = product.rename(columns={'ProductID': 'product_id', 'ProductName': 'product_name',
                                           'Category': 'category', 'Price': 'price'})
@@ -127,7 +127,7 @@ def load_dim_product():
 
 def load_dim_country():
     try:
-        dc = read_gbq('bq_retail.raw_stg_dim_customer', 'my-dw-demos-01')
+        dc = read_gbq('bq_retail.raw_stg_customer', 'my-dw-demos-01')
         country = dc[['Country']].copy()
         country = country.rename(columns={'Country': 'country'})
         country = country.drop_duplicates()
@@ -146,7 +146,7 @@ def load_dim_city():
     # available at the time of loading as they will be loaded together. This designs fetches the fields from a
     # staging-dim_country join.
     try:
-        dc = read_gbq('bq_retail.raw_stg_dim_customer', 'my-dw-demos-01')
+        dc = read_gbq('bq_retail.raw_stg_customer', 'my-dw-demos-01')
         dcc = read_gbq('bq_retail.dim_country', 'my-dw-demos-01')
 
         merged_df = (dc
@@ -167,7 +167,7 @@ def load_dim_city():
 
 def load_dim_customer():
     try:
-        dcs = read_gbq('bq_retail.raw_stg_dim_customer', 'my-dw-demos-01')
+        dcs = read_gbq('bq_retail.raw_stg_customer', 'my-dw-demos-01')
         customer = dcs[['CustomerID', 'FirstName', 'LastName', 'Email', 'Phone', 'Address', 'Age', 'Gender']].copy()
         customer = customer.rename(
             columns={'CustomerID': 'customer_id', 'FirstName': 'first_name', 'LastName': 'last_name',
@@ -186,7 +186,7 @@ def load_dim_customer():
         UPDATE bq_retail.dim_customer cc SET city_key = j.city_key FROM (
             SELECT * EXCEPT(row_num) FROM (
                 SELECT *, ROW_NUMBER() OVER(PARTITION BY CustomerID) AS row_num
-                FROM bq_retail.raw_stg_dim_customer r
+                FROM bq_retail.raw_stg_customer r
                 JOIN bq_retail.dim_city c ON r.City = c.city
             ) WHERE row_num = 1
         ) AS j
@@ -203,7 +203,7 @@ def load_dim_customer():
 
 def load_dim_date():
     try:
-        dt = read_gbq('bq_retail.raw_stg_fact_transaction', 'my-dw-demos-01')
+        dt = read_gbq('bq_retail.raw_stg_transaction', 'my-dw-demos-01')
         date = dt[['Timestamp']].copy()
         date['Timestamp'] = pd.to_datetime(date['Timestamp'])
         # Creating additional attributes for the target date table
@@ -225,7 +225,7 @@ def load_dim_date():
 
 def load_fact_transaction():
     try:
-        df = read_gbq('bq_retail.raw_stg_fact_transaction', 'my-dw-demos-01')
+        df = read_gbq('bq_retail.raw_stg_transaction', 'my-dw-demos-01')
         fact = df[['TransactionID', 'CustomerID', 'ProductID', 'Timestamp', 'Quantity']].copy()
 
         fact['Timestamp'] = pd.to_datetime(fact['Timestamp'])
