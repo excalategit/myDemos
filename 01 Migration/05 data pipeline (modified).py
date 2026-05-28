@@ -56,7 +56,6 @@ try:
     CREATE TABLE IF NOT EXISTS bq_retail.dim_city (
     city_key STRING DEFAULT GENERATE_UUID(),
     city STRING,
-    country STRING,
     country_key STRING
     )'''
     query_job = client.query(dim_city)
@@ -142,34 +141,22 @@ def load_dim_country():
 
 
 def load_dim_city():
+
     try:
-        dcc = read_gbq('bq_retail.raw_stg_dim_customer', 'my-dw-demos-01')
-        city = dcc[['City', 'Country']].copy()
+        dc = read_gbq('bq_retail.raw_stg_dim_customer', 'my-dw-demos-01')
+        dcc = read_gbq('bq_retail.dim_country', 'my-dw-demos-01')
+
+        merged_df = (dc
+                     .merge(dcc, left_on='Country', right_on='country', how='left')
+                     )
+
+        city = merged_df[['City', 'country_key']].copy()
         city = city.rename(columns={'City': 'city'})
-        city = city.drop_duplicates(subset=['city', 'Country'], keep='first')
+        city = city.drop_duplicates(subset=['city', 'country_key'], keep='first')
 
         to_gbq(city, 'bq_retail.dim_city', project_id='my-dw-demos-01', if_exists='append')
 
         print('Data loaded successfully to dim_city table.')
-
-    except Exception as error:
-        print(f'Update failed for dim_city table: {error}')
-
-    # A window function is not used here as usual because the table is identified by 2 attributes
-    # whereas a WF will partition by only one attribute.
-    try:
-        update_dim_city = '''
-        UPDATE bq_retail.dim_city cc SET country_key = j.country_key FROM (
-            SELECT DISTINCT r.City, r.Country, c.country_key
-            FROM bq_retail.raw_stg_dim_customer r
-            JOIN bq_retail.dim_country c ON r.Country = c.country 
-        ) j
-        WHERE cc.city = j.City and cc.country = j.Country
-        '''
-        query_job = client.query(update_dim_city)
-        query_job.result()
-
-        print('dim_city updated successfully with country_key.')
 
     except Exception as error:
         print(f'Loading failed for dim_city table: {error}')
