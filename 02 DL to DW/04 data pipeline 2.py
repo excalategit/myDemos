@@ -373,9 +373,7 @@ def load_fact_sale_product():
         JOIN bq_api.raw_stg_prod_data pp on p.product_id = pp.id 
         '''
 
-        df = client.query(fact_sale_product_dataset).to_dataframe()
-
-        fact_sale_product = df[['sale_key', 'product_key', 'price', 'quantity', 'total_sale', 'stock']].copy()
+        fact_sale_product = client.query(fact_sale_product_dataset).to_dataframe()
 
         enforcer(table_name, fact_sale_product)
 
