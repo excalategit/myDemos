@@ -5,9 +5,10 @@ the migration of an already normalized dataset from a source to a
 target database, while keeping the data model consistent.
 
 There are 2 files for the pipeline code, in the modified version, the data model 
-was further normalized to optimize it for BI purposes i.e. extracting City and 
-Country to their own tables. The City table also now contains additional 
-geographical context, this was missing in previous designs.
+was further normalized extracting City and Country to their own tables, aligning
+with best practice. City alone is not a good enough business key on a city table
+because it is not unique, the re-modeling instead uses City together with its 
+geographical context, in this case, city+country_key as the business key.
 
 Since the project is showcasing the loading method for a scenario where the 
 data model is consistent between source and target systems, the emphasis was 
