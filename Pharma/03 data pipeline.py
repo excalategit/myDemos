@@ -276,6 +276,8 @@ def load_dim_city():
         df = read_gbq('bq_pharma.raw_stg_pharma_data', 'my-dw-demos-01')
         dc = read_gbq('bq_pharma.dim_country', 'my-dw-demos-01')
 
+        # City alone is not unique and therefore not a good business key, a better business key
+        # is city plus its geographical context, therefore city+country_key is used.
         merged_df = (df
                        .merge(dc, left_on='Country', right_on='country', how='left')
                        )
@@ -325,7 +327,7 @@ def load_dim_customer():
         print(f'Error with loading {table_name}: {error}')
         raise
 
-    # Fetching surrogate keys from dim_city and loading to dim_customer.
+    # Fetching surrogate keys from dim_city and updating dim_customer.
     try:
         update_dim_customer = '''
         UPDATE bq_pharma.dim_customer cc SET city_key = j.city_key FROM (
@@ -367,7 +369,6 @@ def load_dim_distributor_customer():
 
 def load_dim_date():
     table_name = 'dim_date'
-
     try:
         df = read_gbq('bq_pharma.raw_stg_pharma_data', 'my-dw-demos-01')
         date = df[['Month', 'Year']].copy()
