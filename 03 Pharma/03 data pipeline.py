@@ -350,14 +350,14 @@ def load_dim_customer():
 
 def load_dim_distributor_customer():
     try:
-        load_dim_distributor_customer = '''
+        loading_query = '''
         INSERT INTO bq_pharma.dim_distributor_customer (distributor_key, customer_key) (
             SELECT DISTINCT distributor_key, customer_key
             FROM bq_pharma.raw_stg_pharma_data s
             LEFT JOIN bq_pharma.dim_distributor d ON s.`Distributor` = d.distributor
             LEFT JOIN bq_pharma.dim_customer c ON s.`Customer Name` = c.customer_name
             )'''
-        query_job = client.query(load_dim_distributor_customer)
+        query_job = client.query(loading_query)
         query_job.result()
 
         print('dim_distributor_customer loaded.')
